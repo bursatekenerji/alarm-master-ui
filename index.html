@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Alarm Master — Remote</title>
+  <style>
+    body{margin:0;font-family:system-ui;background:#070b14;color:#e8eefc}
+    .top{display:flex;gap:10px;align-items:center;padding:12px 16px;background:#0b1222;position:sticky;top:0}
+    .pill{padding:6px 10px;border-radius:999px;background:#111a33;border:1px solid #1e2a52;font-size:12px}
+    .ok{color:#70ffb6} .bad{color:#ff6b6b}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .card{background:#0b1222;border:1px solid #162044;border-radius:16px;padding:14px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    button{cursor:pointer;border:1px solid #22305f;background:#111a33;color:#e8eefc;padding:10px 12px;border-radius:12px}
+    button:hover{filter:brightness(1.08)}
+    input{width:100%;box-sizing:border-box;border:1px solid #22305f;background:#0b1222;color:#e8eefc;padding:10px 12px;border-radius:12px}
+    .zones{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .z{background:#0b1222;border:1px solid #162044;border-radius:16px;padding:12px}
+    .z h4{margin:0 0 8px 0;font-size:14px}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:#2b3557}
+    .dot.on{background:#1fe18a}
+    .small{opacity:.8;font-size:12px}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .zones{grid-template-columns:repeat(2,1fr)} }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="pill"><b>Alarm Master</b> — EMQX Remote</div>
+    <div id="conn" class="pill bad">DISCONNECTED</div>
+    <div class="pill">Status: <span id="last">-</span></div>
+    <div class="pill">Mode: <span id="mode">-</span></div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin:0 0 10px 0">Durum</h3>
+        <div class="row" style="margin-bottom:10px">
+          <div class="pill">Alarm: <b id="alarm">-</b></div>
+          <div class="pill">ACK: <b id="ack">-</b></div>
+          <div class="pill">Mute: <b id="mute">-</b></div>
+          <div class="pill">Maint: <b id="maint">-</b></div>
+          <div class="pill">I2C: <b id="i2c">-</b></div>
+          <div class="pill">ZoneMask: <b id="zm">-</b></div>
+        </div>
+        <div class="row">
+          <button onclick="sendCmd('reset')">Reset Alarm</button>
+          <button onclick="sendCmd('ack')">ACK Toggle</button>
+          <button onclick="sendCmd('mute')">Mute Toggle</button>
+          <button onclick="sendCmd('maint_on')">Enter Maint</button>
+          <button onclick="sendCmd('maint_off')">Exit Maint</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #162044;margin:14px 0">
+
+        <h4 style="margin:0 0 8px 0">Zone Test</h4>
+        <div class="row">
+          <div style="flex:1;min-width:160px">
+            <div class="small">mask (örn 1=Z1, 3=Z1+Z2)</div>
+            <input id="mask" value="1">
+          </div>
+          <div style="flex:1;min-width:160px">
+            <div class="small">süre sn (0=süresiz)</div>
+            <input id="dur" value="10">
+          </div>
+          <button onclick="zoneTest()">Test Başlat</button>
+          <button onclick="sendCmd('zonetest 0 0')">Test Temizle</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 10px 0">Bağlantı</h3>
+        <div class="small">EMQX WSS endpoint</div>
+        <input id="host" value="fa1714ff.ala.eu-central-1.emqxsl.com">
+        <div style="height:8px"></div>
+        <div class="row">
+          <div style="flex:1">
+            <div class="small">username</div>
+            <input id="user" value="master01">
+          </div>
+          <div style="flex:1">
+            <div class="small">password</div>
+            <input id="pass" value="16Bursatek.">
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="row">
+          <button onclick="connect()">Connect</button>
+          <button onclick="disconnect()">Disconnect</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #162044;margin:14px 0">
+
+        <div class="small">Topicler</div>
+        <div class="pill" style="margin-top:8px">SUB: alarm/tekenerji1/master01/status</div>
+        <div class="pill" style="margin-top:8px">SUB: alarm/tekenerji1/master01/online</div>
+        <div class="pill" style="margin-top:8px">PUB: alarm/tekenerji1/master01/cmd</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 10px 0">Zones (status’tan okunur)</h3>
+      <div class="zones" id="zones"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 10px 0">Log</h3>
+      <div id="log" class="small" style="white-space:pre-wrap;max-height:260px;overflow:auto"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    let client = null;
+
+    const TOPIC_STATUS = "alarm/tekenerji1/master01/status";
+    const TOPIC_ONLINE = "alarm/tekenerji1/master01/online";
+    const TOPIC_CMD    = "alarm/tekenerji1/master01/cmd";
+
+    const el = (id)=>document.getElementById(id);
+    const log = (s)=>{ el("log").textContent = (new Date().toLocaleTimeString()+"  "+s+"\n") + el("log").textContent; };
+
+    function setConn(ok){
+      el("conn").textContent = ok ? "CONNECTED" : "DISCONNECTED";
+      el("conn").className = "pill " + (ok ? "ok" : "bad");
+    }
+
+    function renderZones(mask){
+      const z = el("zones");
+      z.innerHTML = "";
+      for(let i=1;i<=8;i++){
+        const bit = 1<<(i-1);
+        const on = (mask & bit) !== 0;
+        const d = document.createElement("div");
+        d.className = "z";
+        d.innerHTML = `
+          <h4><span class="dot ${on?'on':''}"></span>Zone ${i}</h4>
+          <div class="small">Durum: <b>${on?'ACTIVE':'PASSIVE'}</b></div>
+        `;
+        z.appendChild(d);
+      }
+    }
+
+    function applyStatus(obj){
+      // NodeMCU status formatı: {"alarm":0/1,"ack":0/1,"mute":0/1,"maint":0/1,"i2cOk":0/1,"zone":0..255,"latched":..,"hit":..,"mode":0..}
+      el("alarm").textContent = obj.alarm ? "ON" : "OFF";
+      el("ack").textContent   = obj.ack ? "ON" : "OFF";
+      el("mute").textContent  = obj.mute ? "ON" : "OFF";
+      el("maint").textContent = obj.maint ? "ON" : "OFF";
+      el("i2c").textContent   = obj.i2cOk ? "OK" : "FAIL";
+      el("zm").textContent    = (obj.zone ?? "-");
+      el("mode").textContent  = (obj.mode ?? "-");
+      el("last").textContent  = new Date().toLocaleTimeString();
+      renderZones(obj.zone ?? 0);
+    }
+
+    function connect(){
+      const host = el("host").value.trim();
+      const user = el("user").value.trim();
+      const pass = el("pass").value;
+
+      const url = `wss://${host}:8084/mqtt`;
+      log("Connecting: " + url);
+
+      client = mqtt.connect(url, {
+        username: user,
+        password: pass,
+        clientId: "web_" + Math.random().toString(16).slice(2),
+        clean: true,
+        reconnectPeriod: 2000,
+        connectTimeout: 8000,
+        keepalive: 30
+      });
+
+      client.on("connect", ()=>{
+        setConn(true);
+        log("MQTT connected");
+        client.subscribe([TOPIC_STATUS, TOPIC_ONLINE], (err)=>{
+          if(err) log("SUB error: " + err.message);
+          else log("SUB ok");
+        });
+      });
+
+      client.on("reconnect", ()=>{ setConn(false); log("reconnecting..."); });
+      client.on("close", ()=>{ setConn(false); log("closed"); });
+      client.on("error", (e)=>{ setConn(false); log("error: " + e.message); });
+
+      client.on("message", (topic, payload)=>{
+        const msg = payload.toString();
+        if(topic === TOPIC_ONLINE){
+          log("ONLINE => " + msg);
+          return;
+        }
+        if(topic === TOPIC_STATUS){
+          try{
+            const obj = JSON.parse(msg);
+            applyStatus(obj);
+          }catch(e){
+            log("STATUS parse error: " + e.message + " / " + msg);
+          }
+        }
+      });
+    }
+
+    function disconnect(){
+      if(client){
+        client.end(true);
+        client = null;
+        setConn(false);
+        log("Disconnected");
+      }
+    }
+
+    function sendCmd(cmd){
+      if(!client || !client.connected){
+        alert("Önce Connect");
+        return;
+      }
+      client.publish(TOPIC_CMD, cmd, {qos: 0, retain: false});
+      log("PUB CMD => " + cmd);
+    }
+
+    function zoneTest(){
+      const mask = parseInt(el("mask").value, 10) || 0;
+      const dur  = parseInt(el("dur").value, 10) || 0;
+      sendCmd(`zonetest ${mask} ${dur}`);
+    }
+
+    // sayfa açılınca zone kartları boş kalmasın
+    renderZones(0);
+  </script>
+</body>
+</html>
