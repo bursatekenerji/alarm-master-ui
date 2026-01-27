@@ -1,0 +1,487 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alarm Master</title>
+<style>
+:root{
+  --bg:#0b1220;--card:#101a32;--card2:#0f1730;--mut:#9bb0d3;--tx:#e9f0ff;
+  --ok:#2ee59d;--bad:#ff5b6e;--wrn:#ffd166;--ln:#1f2a44;--hi:#2b3a66;
+  --shadow:0 12px 32px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(1200px 800px at 10% 0%, #12214a 0%, var(--bg) 45%) fixed;color:var(--tx)}
+.wrap{max-width:1280px;margin:0 auto;padding:18px}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.78);backdrop-filter:blur(10px);border-bottom:1px solid var(--ln)}
+.topbar .in{max-width:1280px;margin:0 auto;padding:12px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{
+  width:48px;height:48px;border-radius:14px;border:1px solid var(--ln);
+  box-shadow:var(--shadow);background:transparent;display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.logo img{width:100%;height:100%;object-fit:contain;display:block;}
+.brand h1{font-size:15px;margin:0;font-weight:950;letter-spacing:.3px}
+.brand .sub{font-size:12px;color:var(--mut);margin-top:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));border:1px solid var(--ln);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.title{font-size:16px;font-weight:950;margin:0 0 8px 0}
+.sub{color:var(--mut);font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--ln);font-size:13px;background:rgba(15,26,51,.55)}
+.dot{width:9px;height:9px;border-radius:50%;background:#33425f;box-shadow:0 0 0 3px rgba(0,0,0,.12) inset}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+button{cursor:pointer;border:1px solid var(--ln);background:#0f1a33;color:var(--tx);padding:10px 12px;border-radius:14px;font-weight:950;transition:transform .05s ease, filter .15s ease, border-color .15s ease}
+button:hover{filter:brightness(1.08)}
+button:active{transform:translateY(1px)}
+button.red{background:rgba(255,91,110,.12);border-color:rgba(255,91,110,.35)}
+button.yellow{background:rgba(255,209,102,.10);border-color:rgba(255,209,102,.30)}
+button.green{background:rgba(46,229,157,.10);border-color:rgba(46,229,157,.28)}
+button.gray{background:rgba(155,176,211,.10);border-color:rgba(155,176,211,.22)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:10px 12px;border-radius:14px;border:1px solid var(--ln);background:rgba(15,26,51,.45);color:var(--tx);font-weight:950}
+.tab.active{background:rgba(43,58,102,.65);border-color:rgba(155,176,211,.35)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:620px){.grid{grid-template-columns:1fr;}}
+.z{padding:12px;border-radius:18px;border:1px solid var(--ln);background:rgba(15,23,48,.65);position:relative}
+.z.on{border-color:rgba(255,91,110,.35);background:linear-gradient(180deg,rgba(255,91,110,.14),rgba(15,23,48,.62))}
+.z.off{border-color:rgba(46,229,157,.25)}
+.z.hit{outline:3px solid rgba(255,209,102,.35); box-shadow:0 0 0 1px rgba(255,209,102,.22), 0 0 40px rgba(255,209,102,.10);}
+.z .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.z .name{font-size:13px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--ln);font-weight:950;font-size:12px;background:rgba(15,26,51,.55)}
+.badge.ok{border-color:rgba(46,229,157,.35);color:var(--ok)}
+.badge.bad{border-color:rgba(255,91,110,.38);color:var(--bad)}
+.badge.wrn{border-color:rgba(255,209,102,.35);color:var(--wrn)}
+input,select{width:100%;background:#0f1a33;border:1px solid var(--ln);color:var(--tx);padding:10px 12px;border-radius:14px;font-weight:800;outline:none}
+input:focus,select:focus{border-color:rgba(155,176,211,.55);box-shadow:0 0 0 4px rgba(43,58,102,.35)}
+.small{font-size:12px;color:var(--mut)}
+.split{display:grid;grid-template-columns:1.15fr .85fr;gap:12px}
+@media(max-width:980px){.split{grid-template-columns:1fr}}
+.hr{height:1px;background:var(--ln);margin:12px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 10px}
+td,th{font-size:13px;text-align:left;padding:10px 12px;vertical-align:middle}
+thead th{color:var(--mut);font-weight:950}
+tbody tr{background:rgba(15,23,48,.72);border:1px solid var(--ln)}
+tbody tr td:first-child{border-top-left-radius:14px;border-bottom-left-radius:14px}
+tbody tr td:last-child{border-top-right-radius:14px;border-bottom-right-radius:14px}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap}
+.mini{padding:7px 10px;border-radius:12px;font-weight:950}
+.toast{position:fixed;right:14px;bottom:14px;z-index:20;display:flex;flex-direction:column;gap:10px}
+.toast .t{min-width:260px;max-width:360px;padding:12px 12px;border-radius:16px;border:1px solid var(--ln);box-shadow:var(--shadow);background:rgba(15,26,51,.82);backdrop-filter:blur(10px)}
+.toast .t b{font-size:13px}
+.toast .t .m{margin-top:4px;color:var(--mut);font-size:12px}
+.toast .t.ok{border-color:rgba(46,229,157,.35)}
+.toast .t.bad{border-color:rgba(255,91,110,.38)}
+.alarmGlow{box-shadow:0 0 0 1px rgba(255,91,110,.25), 0 0 40px rgba(255,91,110,.12)}
+.hide{display:none}
+.kicker{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.kicker .pill{padding:7px 10px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(31,42,68,.65)}
+.kv:last-child{border-bottom:0}
+</style>  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head><body>
+<div class="card" style="margin:12px">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+    <div><b>Uzaktan Web Arayüz (GitHub Pages)</b></div>
+    <div id="mqttState">MQTT: -</div>
+    <div>Online: <span id="onlineState">-</span></div>
+  </div>
+  <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">
+    <button id="btn_reset">RESET</button>
+    <button id="btn_ack">ACK</button>
+    <button id="btn_mute">MUTE</button>
+    <button id="btn_maint_on">MAINT ON</button>
+    <button id="btn_maint_off">MAINT OFF</button>
+  </div>
+  <pre id="statusRaw" style="margin-top:10px;max-height:220px;overflow:auto"></pre>
+  <div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">
+    <div>alarm=<span id="st_alarm">-</span></div>
+    <div>ack=<span id="st_ack">-</span></div>
+    <div>mute=<span id="st_mute">-</span></div>
+    <div>maint=<span id="st_maint">-</span></div>
+    <div>i2cOk=<span id="st_i2c">-</span></div>
+    <div>zone=<span id="st_zone">-</span></div>
+    <div>latched=<span id="st_latched">-</span></div>
+    <div>hit=<span id="st_hit">-</span></div>
+    <div>mode=<span id="st_mode">-</span></div>
+  </div>
+  <div style="margin-top:8px;font-size:12px;opacity:.75">
+    Not: Bu sayfa EMQX Cloud'a WSS (8084) ile bağlanır. Tarayıcıdan kullanıcı/şifre görünür; üretimde ACL + sadece sınırlı kullanıcı kullanın.
+  </div>
+</div>
+
+
+<div class="topbar"><div class="in">
+  <div class="brand">
+    <div class="logo"><img src="/logo2.svg?v=2" alt="logo"></div>
+    <div>
+      <h1>Alarm Master</h1>
+      <div class="sub">W5500 + ESP8266 • Live panel</div>
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="zones">Zones</button>
+    <button class="tab" data-tab="rules">Rules</button>
+    <button class="tab" data-tab="pol">Policies</button>
+    <button class="tab" data-tab="slaves">Slaves</button>
+    <button class="tab" data-tab="log">Log</button>
+    <button class="tab" data-tab="test">Test</button>
+    <button class="tab" data-tab="diag">Diagnostics</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div class="title">Durum</div>
+      <div class="sub">1 saniyede bir güncellenir</div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="pill"><span class="dot" id="dAlarm"></span><span>Alarm: <b id="tAlarm">-</b></span></span>
+        <span class="pill"><span class="dot" id="dAck"></span><span>ACK: <b id="tAck">-</b></span></span>
+        <span class="pill"><span class="dot" id="dIp"></span><span>IP: <b class="mono" id="tIp">-</b></span></span>
+        <span class="pill"><span class="dot" id="dI2c"></span><span>I2C: <b id="tI2c">-</b></span></span>
+        <span class="pill"><span class="dot" id="dMaint"></span><span>Maint: <b id="tMaint">-</b></span></span>
+        <span class="pill"><span class="dot" id="dMode"></span><span>Mode: <b id="tMode">-</b></span></span>
+      </div>
+      <div class="btns">
+        <button class="red" onclick="post('/api/reset')">Reset Alarm</button>
+        <button class="yellow" onclick="post('/api/ack')">ACK Toggle</button>
+        <button class="yellow" onclick="post('/api/mute')">Mute Toggle</button>
+        <button class="yellow" onclick="post('/api/maint')">Enter Maint</button>
+        <button class="green" onclick="post('/api/exitmaint')">Exit Maint</button>
+      </div>
+    </div>
+
+    <div class="card" style="min-width:280px">
+      <div class="title">TRG</div>
+      <div class="sub">Tetikleyen zone listesi</div>
+      <div style="margin-top:10px;font-size:24px;font-weight:950" id="tTrg">-</div>
+      <div class="kicker">
+        <span class="pill"><span class="dot" id="dHit"></span><span>Son Hit: <b id="tHit">-</b></span></span>
+      </div>
+      __OTA_SNIPPET__
+    </div>
+  </div>
+
+  <div id="tab_dash" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Hızlı Görünüm</div>
+      <div class="sub">Alarm / Zone / Slave durumları</div>
+      <div class="grid" id="dashZones"></div>
+    </div>
+  </div>
+
+  <div id="tab_zones" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Zones</div>
+      <div class="sub">Zone isimlerini düzenle ve kaydet (LittleFS)</div>
+      <div class="grid" id="zonesGrid"></div>
+      <div class="btns">
+        <button class="green" onclick="saveZoneNames()">Zone İsimlerini Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab_rules" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Rule Editor</div>
+      <div class="sub">Zone alarmı gelince master mask + slave aksiyonları</div>
+
+      <div class="kicker">
+        <span class="pill"><span class="dot" id="dRuleHit"></span><span>Son Hit: <b id="tRuleHit">-</b></span></span>
+        <button class="gray mini" onclick="focusLastHit()">Son hit zone’a git</button>
+      </div>
+
+      <div class="split" style="margin-top:12px">
+        <div class="card" style="box-shadow:none">
+          <div class="sub">Zone / TTL</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <select id="rz" onchange="loadRule()" style="max-width:360px"></select>
+            <input id="rttl" type="number" min="1" max="3600" placeholder="TTL (sn)" style="max-width:180px">
+            <button class="green" onclick="saveRule()">Rule Kaydet</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="sub">Master Outputs</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <label class="pill"><input type="checkbox" id="mRelay" style="width:auto"> Relay</label>
+            <label class="pill"><input type="checkbox" id="mBuz" style="width:auto"> Buzzer</label>
+            <label class="pill"><input type="checkbox" id="mY" style="width:auto"> Yellow</label>
+            <label class="pill"><input type="checkbox" id="mR" style="width:auto"> Red</label>
+          </div>
+          <div class="small" style="margin-top:8px">Not: Alarmda MUTE açıksa buzzer mask’ı uygulanmaz.</div>
+
+          <div class="hr"></div>
+
+          <div class="sub">Presetler</div>
+          <div class="small">Hızlı ayar: master + slave tabloyu tek tuşla doldur</div>
+          <div class="btns">
+            <button class="gray mini" onclick="presetAllOff()">Hepsi Kapalı</button>
+            <button class="gray mini" onclick="presetMasterAlarm()">Master: Röle+Buzzer+Kırmızı</button>
+            <button class="gray mini" onclick="presetAllAuto()">Tüm Slavelar AUTO (enable açık)</button>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none">
+          <div class="sub">Slave aksiyonları</div>
+          <div class="small">Enable + Mode + R1/R2</div>
+          <div style="margin-top:10px;overflow:auto">
+            <table>
+              <thead><tr><th>Slave</th><th>Enable</th><th>Mode</th><th>R1</th><th>R2</th></tr></thead>
+              <tbody id="rslv"></tbody>
+            </table>
+          </div>
+          <div class="small">Not: Mode Policy (Policies sekmesi) bazı slaveları AUTO’ya zorlayabilir veya ignore edebilir.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab_pol" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Mode Policies</div>
+      <div class="sub">Her modda her slave için izin politikası</div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+        <label class="pill" style="gap:10px">
+          Aktif Mode
+          <select id="sysModeSel" style="width:auto;min-width:140px" onchange="setSysMode()">
+            <option value="0">DAY</option>
+            <option value="1">NIGHT</option>
+            <option value="2">AWAY</option>
+          </select>
+        </label>
+
+        <label class="pill" style="gap:10px">
+          Düzenlenen Mode
+          <select id="polModeSel" style="width:auto;min-width:140px" onchange="loadPolicy()">
+            <option value="0">DAY</option>
+            <option value="1">NIGHT</option>
+            <option value="2">AWAY</option>
+          </select>
+        </label>
+
+        <button class="green" onclick="savePolicy()">Policy Kaydet</button>
+      </div>
+
+      <div style="margin-top:12px;overflow:auto">
+        <table>
+          <thead><tr><th>Slave</th><th>Policy</th></tr></thead>
+          <tbody id="poltbl"></tbody>
+        </table>
+      </div>
+
+      <div class="small" style="margin-top:8px">
+        Policy açıklaması: IGNORE=komut yok • AUTO_ONLY=sadece AUTO • ALLOW_MANUAL=AUTO+MANUAL • ALLOW_PULSE=AUTO+PULSE • ALLOW_ALL=hepsi.
+        Uymayan komutlar fail-safe olarak AUTO’ya zorlanır.
+      </div>
+    </div>
+  </div>
+
+  <div id="tab_slaves" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Slaves</div>
+      <div class="sub">CmdRes: PEND/OK/FAIL • TTL bitince AUTO</div>
+      <div style="margin-top:10px;overflow:auto">
+        <table>
+          <thead><tr><th>ID</th><th>IP</th><th>Durum</th><th>Age</th><th>Mode</th><th>R1</th><th>R2</th><th>Desired</th><th>CmdRes</th><th>Kontrol</th></tr></thead>
+          <tbody id="slv"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab_log" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Event Log</div>
+      <div class="sub">Son olaylar (en yeni üstte)</div>
+      <div style="margin-top:10px;overflow:auto">
+        <table>
+          <thead><tr><th>#</th><th>Time</th><th>Event</th></tr></thead>
+          <tbody id="elog"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab_test" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Zone Test</div>
+      <div class="sub">Web üzerinden test zone tetikleme (I2C’den bağımsız)</div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+        <input id="tmask" type="number" min="0" max="255" placeholder="mask (örn 1=Z1, 3=Z1+Z2)" style="max-width:260px">
+        <input id="tdur" type="number" min="0" max="3600" placeholder="süre sn (0=süresiz)" style="max-width:220px">
+        <button class="yellow" onclick="startTest()">Test Başlat</button>
+        <button class="red" onclick="post('/api/zonetestclr')">Test Temizle</button>
+      </div>
+
+      <div class="small" style="margin-top:10px">
+        Zone bitleri: Z1=1, Z2=2, Z3=4, Z4=8, Z5=16, Z6=32, Z7=64, Z8=128
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid" id="testZones"></div>
+    </div>
+  </div>
+
+  <div id="tab_diag" class="hide" style="margin-top:12px">
+    <div class="card">
+      <div class="title">Diagnostics</div>
+      <div class="sub">Sistem kaynakları ve bağlantı durumu (hafif)</div>
+
+      <div style="margin-top:10px">
+        <div class="kv"><div class="small">Uptime</div><div class="mono" id="d_up">-</div></div>
+        <div class="kv"><div class="small">Heap</div><div class="mono" id="d_heap">-</div></div>
+        <div class="kv"><div class="small">CPU</div><div class="mono" id="d_cpu">-</div></div>
+        <div class="kv"><div class="small">WiFi RSSI</div><div class="mono" id="d_rssi">-</div></div>
+
+        <div class="hr"></div>
+
+        <div class="kv"><div class="small">Ethernet</div><div class="mono" id="d_eth">-</div></div>
+        <div class="kv"><div class="small">LittleFS</div><div class="mono" id="d_fs">-</div></div>
+
+        <div class="hr"></div>
+
+        <div class="kv"><div class="small">I2C</div><div class="mono" id="d_i2cdiag">-</div></div>
+        <div class="kv"><div class="small">UDP</div><div class="mono" id="d_udp">-</div></div>
+        <div class="kv"><div class="small">Events</div><div class="mono" id="d_ev">-</div></div>
+      </div>
+
+      <div class="btns" style="margin-top:12px">
+        <button class="gray" onclick="loadDiag(true)">Yenile</button>
+        <button class="yellow" onclick="post('/api/maint')">Enter Maint</button>
+        <button class="green" onclick="post('/api/exitmaint')">Exit Maint</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+
+/* MQTT UI for EMQX Cloud (WSS) - generated */
+const MQTT_HOST = "fa1714ff.ala.eu-central-1.emqxsl.com";
+const MQTT_PORT = 8084; // WebSocket over TLS
+const MQTT_PATH = "/mqtt"; // EMQX Cloud default (change if your console shows different)
+const MQTT_USER = "master01";
+const MQTT_PASS = "16Bursatek.";
+
+// Topics from firmware
+const TOPIC_CMD    = "alarm/tekenerji1/master01/cmd";
+const TOPIC_STATUS = "alarm/tekenerji1/master01/status";
+const TOPIC_ONLINE = "alarm/tekenerji1/master01/online";
+
+let client = null;
+let lastStatus = null;
+let lastOnline = null;
+
+function $(id){ return document.getElementById(id); }
+function setText(id, v){ const el=$(id); if(el) el.textContent = v; }
+function setHtml(id, v){ const el=$(id); if(el) el.innerHTML = v; }
+
+function fmtBool(v){ return v ? "ON" : "OFF"; }
+function fmtTs(ms){
+  if(!ms && ms!==0) return "-";
+  const d = new Date(ms);
+  return d.toLocaleString();
+}
+
+function connectMqtt(){
+  // mqtt.js injected via CDN in <head>
+  const url = `wss://${MQTT_HOST}:${MQTT_PORT}${MQTT_PATH}`;
+  setText("mqttState", `Bağlanıyor: ${url}`);
+  client = mqtt.connect(url, {
+    username: MQTT_USER,
+    password: MQTT_PASS,
+    clientId: "webui_" + Math.random().toString(16).slice(2),
+    keepalive: 30,
+    reconnectPeriod: 2000,
+    clean: true,
+    connectTimeout: 8000
+  });
+
+  client.on("connect", () => {
+    setText("mqttState", "MQTT: bağlı ✅");
+    client.subscribe([TOPIC_STATUS, TOPIC_ONLINE], { qos: 0 }, (err) => {
+      if(err) setText("mqttState", "MQTT: subscribe hata: " + err.message);
+    });
+  });
+
+  client.on("reconnect", () => setText("mqttState", "MQTT: yeniden bağlanıyor..."));
+  client.on("close", () => setText("mqttState", "MQTT: bağlantı kapandı"));
+  client.on("error", (e) => setText("mqttState", "MQTT hata: " + (e && e.message ? e.message : e)));
+  client.on("message", (topic, payloadBuf) => {
+    const payload = payloadBuf.toString();
+    if(topic === TOPIC_ONLINE){
+      lastOnline = payload;
+      setText("onlineState", payload);
+      return;
+    }
+    if(topic === TOPIC_STATUS){
+      try{
+        const j = JSON.parse(payload);
+        lastStatus = j;
+        renderStatus(j);
+      }catch(e){
+        setText("statusRaw", payload);
+      }
+    }
+  });
+}
+
+function publishCmd(cmd){
+  if(!client || !client.connected){
+    alert("MQTT bağlı değil. Önce bağlantıyı kontrol edin.");
+    return;
+  }
+  client.publish(TOPIC_CMD, cmd, { qos: 0, retain: false });
+}
+
+function renderStatus(s){
+  // These IDs exist in the original UI HTML; if some don't, nothing breaks.
+  setText("statusRaw", JSON.stringify(s, null, 2));
+  setText("st_alarm", s.alarm);
+  setText("st_ack", s.ack);
+  setText("st_mute", s.mute);
+  setText("st_maint", s.maint);
+  setText("st_i2c", s.i2cOk);
+  setText("st_zone", s.zone);
+  setText("st_latched", s.latched);
+  setText("st_hit", s.hit);
+  setText("st_mode", s.mode);
+  // optional: highlight pills if elements exist
+  const setPill=(id,on)=>{
+    const el=$(id);
+    if(!el) return;
+    el.classList.toggle("ok", !!on);
+    el.classList.toggle("bad", !on);
+  };
+  setPill("pill_alarm", !!s.alarm);
+  setPill("pill_ack", !!s.ack);
+  setPill("pill_mute", !!s.mute);
+  setPill("pill_maint", !!s.maint);
+  setPill("pill_i2c", !!s.i2cOk);
+}
+
+window.addEventListener("load", () => {
+  // Wire buttons if present
+  const bind=(id,cmd)=>{
+    const el=$(id);
+    if(el) el.addEventListener("click", ()=>publishCmd(cmd));
+  };
+  bind("btn_reset", "reset");
+  bind("btn_ack", "ack");
+  bind("btn_mute", "mute");
+  bind("btn_maint_on", "maint:on");
+  bind("btn_maint_off", "maint:off");
+  // For test: if you have inputs, keep as-is; otherwise ignore.
+  connectMqtt();
+});
+
+</script>
+
+</div></body></html>
