@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TEK Enerji - Uzaktan Panel</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">TEK</div>
+      <div>
+        <div class="title">Uzaktan Kontrol Paneli</div>
+        <div class="subtitle">EMQX Cloud (WSS)</div>
+      </div>
+    </div>
+
+    <div class="conn">
+      <div class="pill" id="pillStatus">BAĞLI DEĞİL</div>
+      <button class="btn ghost" id="btnConnect">Bağlan</button>
+      <button class="btn ghost" id="btnDisconnect" disabled>Kes</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>Bağlantı Ayarları</h2>
+      <p class="muted">
+        MQTT bağlantısı <b>WebSocket over TLS</b> ile yapılır (EMQX Cloud: 8084).
+      </p>
+
+      <div class="grid2">
+        <label>
+          Broker Host (DNS)
+          <input id="inHost" placeholder="fa1714ff.ala.eu-central-1.emqxsl.com" />
+        </label>
+        <label>
+          Port (WSS)
+          <input id="inPort" placeholder="8084" value="8084" />
+        </label>
+
+        <label>
+          Username
+          <input id="inUser" placeholder="master01" />
+        </label>
+        <label>
+          Password
+          <input id="inPass" placeholder="••••••••" type="password" />
+        </label>
+
+        <label>
+          Client ID
+          <input id="inClientId" placeholder="web-master01" />
+        </label>
+
+        <label>
+          Topic Prefix
+          <input id="inPrefix" placeholder="tek/" />
+        </label>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="btnSave">Kaydet</button>
+        <div class="muted small" id="saveHint"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Durum</h2>
+
+      <div class="statusGrid">
+        <div class="kv"><div class="k">Son Güncelleme</div><div class="v" id="stUpdated">-</div></div>
+        <div class="kv"><div class="k">Cihaz</div><div class="v" id="stDevice">-</div></div>
+        <div class="kv"><div class="k">Mode</div><div class="v" id="stMode">-</div></div>
+        <div class="kv"><div class="k">Alarm</div><div class="v" id="stAlarm">-</div></div>
+        <div class="kv"><div class="k">Ack</div><div class="v" id="stAck">-</div></div>
+        <div class="kv"><div class="k">Mute</div><div class="v" id="stMute">-</div></div>
+        <div class="kv"><div class="k">Maint</div><div class="v" id="stMaint">-</div></div>
+        <div class="kv"><div class="k">Zone Mask</div><div class="v mono" id="stZone">-</div></div>
+      </div>
+
+      <div class="row">
+        <button class="btn warn" id="btnAck" disabled>Ack</button>
+        <button class="btn warn" id="btnMute" disabled>Mute</button>
+        <button class="btn warn" id="btnReset" disabled>Reset</button>
+        <button class="btn ghost" id="btnMaintOn" disabled>Maint ON</button>
+        <button class="btn ghost" id="btnMaintOff" disabled>Maint OFF</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Ham Mesaj</h3>
+      <pre class="pre" id="rawBox">{}</pre>
+    </section>
+
+    <section class="card">
+      <h2>Log</h2>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section class="card">
+      <h2>Topic Haritası</h2>
+      <p class="muted small">
+        Prefix <code>tek/</code> ise: <code>tek/status</code> dinlenir, komutlar <code>tek/cmd</code> üzerinden gönderilir.
+      </p>
+      <div class="grid2">
+        <div class="kv"><div class="k">Status Topic</div><div class="v mono" id="topicStatus">-</div></div>
+        <div class="kv"><div class="k">Command Topic</div><div class="v mono" id="topicCmd">-</div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span class="muted small">Not: "Kaydet" şifre dahil ayarları tarayıcı localStorage'a kaydeder.</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
